@@ -3,6 +3,8 @@
 #include <fstream>
 #include <windows.h>
 
+#include "opcodes.cpp"
+
 struct Header {
     char magic[4]; // Identifier or magic number. This should be "NES" followed by the MS-DOS end-of-file character (1A hex).
     uint8_t prgSize; // Size of PRG ROM in 16 KB units. This indicates the size of the program code. prgSize*16000 to get value
@@ -12,54 +14,13 @@ struct Header {
     char padding[8]; // These bytes are not used by the NES itself and can be used for various purposes by ROM hackers or developers.
 };
 
-// used for converting prg into asm
 
-enum addressingMode {
-    A,
-    ABS,
-    ABSX,
-    ABSY,
-    IMD,
-    IMP,
-    IND,
-    XIND,
-    INDY,
-    REL,
-    ZPG,
-    ZPGX,
-    ZPGY
-};
-
-struct opCode {
-    std::string name;
-    addressingMode addressing;
-};
-
-std::string instructionTable[] = { 
-                                "BRK", "ORA", "???", "???", "???", "ORA", "ASL", "???", "PHP", "ORA", "ASL", "???", "???", "ORA", "ASL", "???",
-                                "BPL", "ORA", "???", "???", "???", "ORA", "ASL", "???", "CLC", "ORA", "???", "???", "???", "ORA", "ASL", "???",
-                                "JSR", "AND", "???", "???", "BIT", "AND", "ROL", "???", "PLP", "AND", "ROL", "???", "BIT", "AND", "ROL", "???",
-                                "BMI", "AND", "???", "???", "???", "AND", "ROL", "???", "SEC", "AND", "???", "???", "???", "AND", "ROL", "???",
-                                "RTI", "EOR", "???", "???", "???", "EOR", "LSR", "???", "PHA", "EOR", "LSR", "???", "JMP", "EOR", "LSR", "???",
-                                "BVC", "EOR", "???", "???", "???", "EOR", "LSR", "???", "CLI", "EOR", "???", "???", "???", "EOR", "LSR", "???",
-                                "RTS", "ADC", "???", "???", "???", "ADC", "ROR", "???", "PLA", "ADC", "ROR", "???", "JMP", "ADC", "ROR", "???",
-                                "BVS", "ADC", "???", "???", "???", "ADC", "ROR", "???", "SEI", "ADC", "???", "???", "???", "ADC", "ROR", "???",
-                                "???", "STA", "???", "???", "STY", "STA", "STX", "???", "DEY", "???", "TXA", "???", "STY", "STA", "STX", "???",
-                                "BCC", "STA", "???", "???", "STY", "STA", "STX", "???", "TYA", "STA", "TXS", "???", "???", "STA", "???", "???",
-                                "LDY", "LDA", "LDX", "???", "LDY", "LDA", "LDX", "???", "TAY", "LDA", "TAX", "???", "LDY", "LDA", "LDX", "???",
-                                "BCS", "LDA", "???", "???", "LDY", "LDA", "LDX", "???", "CLV", "LDA", "TSX", "???", "LDY", "LDA", "LDX", "???",
-                                "CPY", "CMP", "???", "???", "CPY", "CMP", "DEC", "???", "INY", "CMP", "DEX", "???", "CPY", "CMP", "DEC", "???",
-                                "BNE", "CMP", "???", "???", "???", "CMP", "DEC", "???", "CLD", "CMP", "???", "???", "???", "CMP", "DEC", "???",
-                                "CPX", "SBC", "???", "???", "CPX", "SBC", "INC", "???", "INX", "SBC", "NOP", "???", "CPX", "SBC", "INC", "???",
-                                "BEQ", "SBC", "???", "???", "???", "SBC", "INC", "???", "SED", "SBC", "???", "???", "???", "SBC", "INC", "???"
-                                };
-
-typedef std::vector<uint8_t> GameRom;
+typedef std::vector<uint8_t> Rom;
 
 std::ifstream openFile(const std::string &filePath) {
     // Open file in binary mode
     std::ifstream file(filePath, std::ios::binary);
-
+    
     // Check if file opened successfully
     if (!file) {
         std::cerr << "Error opening file: " << filePath << std::endl;
@@ -68,7 +29,7 @@ std::ifstream openFile(const std::string &filePath) {
     return file;
 }
 
-void createFile(const std::string& filename, GameRom& data) {
+void createFile(const std::string& filename, Rom &data) {
     std::ofstream file(filename, std::ios::binary);
     file.write(reinterpret_cast<const char*>(data.data()), data.size());
 }
@@ -77,20 +38,26 @@ void readHeader(std::ifstream &file, Header &header) { // reads information from
     file.read(reinterpret_cast<char*>(&header), sizeof(Header));
 }
 
-void readRom(std::ifstream &file, Header &header, GameRom& prg, GameRom& chr) { // takes the rom and breaks it into prg and chr
+void readRom(std::ifstream &file, Header &header, Rom &prg, Rom &chr) { // takes the rom and breaks it into prg and chr
     file.read(reinterpret_cast<char*>(prg.data()), prg.size());
     file.read(reinterpret_cast<char*>(chr.data()), chr.size());
 }
 
-void prgToAsm(GameRom &rom) { // takes prg and converts the binary into human readable assembly
+void prgToAsm(Rom &prg) { // takes prg and converts the binary into human readable assembly
+    int i = 0;
+    while (i < prg.size()) {
+        const Opcode& op = opcodeTable[prg[i]];
 
+        std::cout << "Address: " << i << " Opcode: " << std::hex << static_cast<int>(prg[i]) 
+                      << " Instruction: " << InstructionStrings[op.name] << " Bytes: " 
+                      << static_cast<int>(op.bytes) << std::endl;
+        i += op.bytes;
+    }
 }
 
 void asmToC() { // takes the converted assembly and turns it into c code
 
 }
-
-
 
 void convertRom(const std::string& filename) {
     std::ifstream file = openFile(filename); 
@@ -98,16 +65,11 @@ void convertRom(const std::string& filename) {
     Header header;
     readHeader(file, header);
 
-    GameRom prg(header.prgSize* 16 * 1024);
-    GameRom chr(header.chrSize* 8 * 1024);
+    Rom prg(header.prgSize * 16 * 1024);
+    Rom chr(header.chrSize * 8 * 1024);
     readRom(file, header, prg, chr);
-    
-    //for (int i = 0; i < sizeof(prg)/3; i++) {
-    //    std::cout.setf(std::ios::hex | std::ios::uppercase | std::ios::showbase);
-    //    std::cout << prg[i*3] << std::endl;
-    //}
 
-    //prgToAsm(prg);
+    prgToAsm(prg);
 
     //asmToC();
 
@@ -116,6 +78,5 @@ void convertRom(const std::string& filename) {
     createFile("binary/prg.bin", prg);
     createFile("binary/chr.chr", chr);
 
-    
     file.close();
 }
