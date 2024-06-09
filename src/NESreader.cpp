@@ -14,7 +14,6 @@ struct Header {
     char padding[8]; // These bytes are not used by the NES itself and can be used for various purposes by ROM hackers or developers.
 };
 
-
 typedef std::vector<uint8_t> Rom;
 
 std::ifstream openFile(const std::string &filePath) {
@@ -44,15 +43,26 @@ void readRom(std::ifstream &file, Header &header, Rom &prg, Rom &chr) { // takes
 }
 
 void prgToAsm(Rom &prg) { // takes prg and converts the binary into human readable assembly
+    CreateDirectory("assembly", NULL);
+    std::ofstream file("assembly/code.asm");
+
     int i = 0;
     while (i < prg.size()) {
         const Opcode& op = opcodeTable[prg[i]];
 
-        std::cout << "Address: " << i << " Opcode: " << std::hex << static_cast<int>(prg[i]) 
-                      << " Instruction: " << InstructionStrings[op.name] << " Bytes: " 
-                      << static_cast<int>(op.bytes) << std::endl;
+        int number = 0;
+        for (int j = 0; j < op.bytes-1; j++) {
+            int n = prg[i+1+j];
+            n = n<<(j*8);
+            number += n;
+        }
+
+        file << OpcodeToAsm(op, number) << std::endl;
+                      
         i += op.bytes;
     }
+
+    file.close();
 }
 
 void asmToC() { // takes the converted assembly and turns it into c code
@@ -60,6 +70,7 @@ void asmToC() { // takes the converted assembly and turns it into c code
 }
 
 void convertRom(const std::string& filename) {
+    // Extract Binary From Rom
     std::ifstream file = openFile(filename); 
     
     Header header;
@@ -69,14 +80,15 @@ void convertRom(const std::string& filename) {
     Rom chr(header.chrSize * 8 * 1024);
     readRom(file, header, prg, chr);
 
-    prgToAsm(prg);
-
-    //asmToC();
+    file.close();
 
     CreateDirectory("binary", NULL);
 
     createFile("binary/prg.bin", prg);
     createFile("binary/chr.chr", chr);
 
-    file.close();
+    // Convert to ASM 
+    prgToAsm(prg);
+
+    //asmToC();
 }

@@ -141,7 +141,7 @@ struct Opcode {
     AddressingMode addressing;
     uint8_t bytes;
 };
-Opcode __illegal__ = {XXX, IMP, 2};
+Opcode __illegal__ = {XXX, IMP, 1};
 
 Opcode opcodeTable[] =
 {// 0           1           2           3           4           5           6           7           8           9           A           B           C           D           E           F
@@ -162,3 +162,57 @@ Opcode opcodeTable[] =
     {CPX,IMM,2},{SBC,IZX,2},__illegal__,__illegal__,{CPX,ZPG,2},{SBC,ZPG,2},{INC,ZPG,2},__illegal__,{INX,IMP,1},{SBC,IMM,2},{NOP,IMP,1},__illegal__,{CPX,ABS,3},{SBC,ABS,3},{INC,ABS,3},__illegal__, // E
     {BEQ,REL,2},{SBC,IZY,2},__illegal__,__illegal__,__illegal__,{SBC,ZPX,2},{INC,ZPX,2},__illegal__,{SED,IMP,1},{SBC,ABY,3},__illegal__,__illegal__,__illegal__,{SBC,ABS,3},{INC,ABX,3},__illegal__  // F
 };
+
+std::string IntToHexString(int number) {
+    char hexString[20];
+    std::sprintf(hexString, "%X", number);
+    return hexString;
+}
+
+std::string OpcodeToAsm(Opcode opcode, int num) {
+    std::string output = "";
+    output += InstructionStrings[opcode.name];
+    switch(opcode.addressing) {
+        case ACC:
+            output += " A";
+            break;
+        case ABS:
+            output += " $" + IntToHexString(num);
+            break;
+        case ABX:
+            output += " $"+IntToHexString(num)+", X";
+            break;
+        case ABY:
+            output += " $"+IntToHexString(num)+", Y";
+            break;
+        case IMM:
+            output += " #$BB";
+            break;
+        case IMP:
+            output += "";
+            break;
+        case IND:
+            output += "($"+IntToHexString(num)+")";
+            break;
+        case IZX:
+            output += " ($"+IntToHexString(num)+", X)";
+            break;
+        case IZY:
+            output += " ($"+IntToHexString(num)+"), Y";
+            break;
+        case REL:
+            output += " $BB";
+            break;
+        case ZPG:
+            output += " $"+IntToHexString(num);
+            break;
+        case ZPX:
+            output += " $"+IntToHexString(num)+", X";
+            break;
+        case ZPY:
+            output += " $"+IntToHexString(num)+", Y";
+            break;
+    }
+
+    return output;
+}
