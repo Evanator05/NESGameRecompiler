@@ -1,6 +1,5 @@
 /build/
-/binary/
-/assembly/
+/converted/
 *.nes
 *.bat
 *.bin

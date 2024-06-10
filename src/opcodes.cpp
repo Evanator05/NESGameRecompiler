@@ -6,7 +6,6 @@
 #include <algorithm> // For std::transform
 #include <cctype>    // For std::tolower
 
-
 enum AddressingMode {
     ACC,    // Accumulator
     ABS,  // Absolute
@@ -21,6 +20,22 @@ enum AddressingMode {
     ZPG,  // Zeropage
     ZPX,  // Zeropage, X-indexed
     ZPY   // Zeropage, Y-indexed
+};
+
+uint8_t AddressingModeBytes[] = {
+    1, // ACC
+    3, // ABS
+    3, // ABX
+    3, // ABY
+    2, // IMM
+    1, // IMP
+    3, // IND
+    2, // IZX
+    2, // IZY
+    2, // REL
+    2, // ZPG
+    2, // ZPX
+    2 // ZPY
 };
 
 enum Instructions {
@@ -145,28 +160,27 @@ const char* InstructionStrings[] = {
 struct Opcode {
     Instructions name;
     AddressingMode addressing;
-    uint8_t bytes;
 };
-Opcode __illegal__ = {XXX, IMP, 1};
+Opcode _illegal_ = {XXX,IMP};
 
 Opcode opcodeTable[] =
-{// 0           1           2           3           4           5           6           7           8           9           A           B           C           D           E           F
-    {BRK,IMP,1},{ORA,IZX,2},__illegal__,__illegal__,__illegal__,{ORA,ZPG,2},{ASL,ZPG,2},__illegal__,{PHP,IMP,1},{ORA,IMM,2},{ASL,ACC,1},__illegal__,__illegal__,{ORA,ABS,3},{ASL,ABS,3},__illegal__, // 0
-    {BPL,REL,2},{ORA,IZY,2},__illegal__,__illegal__,__illegal__,{ORA,ZPX,2},{ASL,ZPX,2},__illegal__,{CLC,IMP,1},{ORA,ABY,3},__illegal__,__illegal__,__illegal__,{ORA,ABS,3},{ASL,ABX,3},__illegal__, // 1
-    {JSR,ABS,3},{AND,IZX,2},__illegal__,__illegal__,{BIT,ZPG,2},{AND,ZPG,2},{ROL,ZPG,2},__illegal__,{PLP,IMP,1},{AND,IMM,2},{ROL,ACC,1},__illegal__,{BIT,ABS,3},{AND,ABS,3},{ROL,ABS,3},__illegal__, // 2
-    {BMI,REL,2},{AND,IZY,2},__illegal__,__illegal__,__illegal__,{AND,ZPX,2},{ROL,ZPX,2},__illegal__,{SEC,IMP,1},{AND,ABY,3},__illegal__,__illegal__,__illegal__,{AND,ABS,3},{ROL,ABX,3},__illegal__, // 3
-    {RTI,IMP,1},{EOR,IZX,2},__illegal__,__illegal__,__illegal__,{EOR,ZPG,2},{LSR,ZPG,2},__illegal__,{PHA,IMP,1},{EOR,IMM,2},{LSR,ACC,1},__illegal__,{JMP,ABS,3},{EOR,ABS,3},{LSR,ABS,3},__illegal__, // 4
-    {BVC,REL,2},{EOR,IZY,2},__illegal__,__illegal__,__illegal__,{EOR,ZPX,2},{LSR,ZPX,2},__illegal__,{CLI,IMP,1},{EOR,ABY,3},__illegal__,__illegal__,__illegal__,{EOR,ABS,3},{LSR,ABX,3},__illegal__, // 5
-    {RTS,IMP,1},{ADC,IZX,2},__illegal__,__illegal__,__illegal__,{ADC,ZPG,2},{ROR,ZPG,2},__illegal__,{PLA,IMP,1},{ADC,IMM,2},{ROR,ACC,1},__illegal__,{JMP,IND,3},{ADC,ABS,3},{ROR,ABS,3},__illegal__, // 6
-    {BVS,REL,2},{ADC,IZY,2},__illegal__,__illegal__,__illegal__,{ADC,ZPX,2},{ROR,ZPX,2},__illegal__,{SEI,IMP,1},{ADC,ABY,3},__illegal__,__illegal__,__illegal__,{ADC,ABS,3},{ROR,ABX,3},__illegal__, // 7
-    __illegal__,{STA,IZX,2},__illegal__,__illegal__,{STY,ZPG,2},{STA,ZPG,2},{STX,ZPG,2},__illegal__,{DEY,IMP,1},__illegal__,{TXA,IMP,1},__illegal__,{STY,ABS,3},{STA,ABS,3},{STX,ABS,3},__illegal__, // 8
-    {BCC,REL,2},{STA,IZY,2},__illegal__,__illegal__,{STY,ZPX,2},{STA,ZPX,2},{STX,ZPX,2},__illegal__,{TYA,IMP,1},{STA,ABY,3},{TXS,IMP,1},__illegal__,__illegal__,{STA,ABS,3},__illegal__,__illegal__, // 9
-    {LDY,IMM,2},{LDA,IZX,2},{LDX,IMM,2},__illegal__,{LDY,ZPG,2},{LDA,ZPG,2},{LDX,ZPG,2},__illegal__,{TAY,IMP,1},{LDA,IMM,2},{TAX,IMP,1},__illegal__,{LDY,ABS,3},{LDA,ABS,3},{LDX,ABS,3},__illegal__, // A
-    {BCS,REL,2},{LDA,IZY,2},__illegal__,__illegal__,{LDY,ZPX,2},{LDA,ZPX,2},{LDX,ZPX,2},__illegal__,{CLV,IMP,1},{LDA,ABY,3},{TSX,IMP,1},__illegal__,{LDY,ABX,3},{LDA,ABS,3},{LDX,ABX,3},__illegal__, // B
-    {CPY,IMM,2},{CMP,IZX,2},__illegal__,__illegal__,{CPY,ZPG,2},{CMP,ZPG,2},{DEC,ZPG,2},__illegal__,{INY,IMP,1},{CMP,IMM,2},{DEX,IMP,1},__illegal__,{CPY,ABS,3},{CMP,ABS,3},{DEC,ABS,3},__illegal__, // C
-    {BNE,REL,2},{CMP,IZY,2},__illegal__,__illegal__,__illegal__,{CMP,ZPX,2},{DEC,ZPX,2},__illegal__,{CLD,IMP,1},{CMP,ABY,3},__illegal__,__illegal__,__illegal__,{CMP,ABS,3},{DEC,ABX,3},__illegal__, // D
-    {CPX,IMM,2},{SBC,IZX,2},__illegal__,__illegal__,{CPX,ZPG,2},{SBC,ZPG,2},{INC,ZPG,2},__illegal__,{INX,IMP,1},{SBC,IMM,2},{NOP,IMP,1},__illegal__,{CPX,ABS,3},{SBC,ABS,3},{INC,ABS,3},__illegal__, // E
-    {BEQ,REL,2},{SBC,IZY,2},__illegal__,__illegal__,__illegal__,{SBC,ZPX,2},{INC,ZPX,2},__illegal__,{SED,IMP,1},{SBC,ABY,3},__illegal__,__illegal__,__illegal__,{SBC,ABS,3},{INC,ABX,3},__illegal__  // F
+{// 0         1         2         3         4         5         6         7         8         9         A         B         C         D         E         F
+    {BRK,IMP},{ORA,IZX},_illegal_,_illegal_,_illegal_,{ORA,ZPG},{ASL,ZPG},_illegal_,{PHP,IMP},{ORA,IMM},{ASL,ACC},_illegal_,_illegal_,{ORA,ABS},{ASL,ABS},_illegal_, // 0
+    {BPL,REL},{ORA,IZY},_illegal_,_illegal_,_illegal_,{ORA,ZPX},{ASL,ZPX},_illegal_,{CLC,IMP},{ORA,ABY},_illegal_,_illegal_,_illegal_,{ORA,ABS},{ASL,ABX},_illegal_, // 1
+    {JSR,ABS},{AND,IZX},_illegal_,_illegal_,{BIT,ZPG},{AND,ZPG},{ROL,ZPG},_illegal_,{PLP,IMP},{AND,IMM},{ROL,ACC},_illegal_,{BIT,ABS},{AND,ABS},{ROL,ABS},_illegal_, // 2
+    {BMI,REL},{AND,IZY},_illegal_,_illegal_,_illegal_,{AND,ZPX},{ROL,ZPX},_illegal_,{SEC,IMP},{AND,ABY},_illegal_,_illegal_,_illegal_,{AND,ABS},{ROL,ABX},_illegal_, // 3
+    {RTI,IMP},{EOR,IZX},_illegal_,_illegal_,_illegal_,{EOR,ZPG},{LSR,ZPG},_illegal_,{PHA,IMP},{EOR,IMM},{LSR,ACC},_illegal_,{JMP,ABS},{EOR,ABS},{LSR,ABS},_illegal_, // 4
+    {BVC,REL},{EOR,IZY},_illegal_,_illegal_,_illegal_,{EOR,ZPX},{LSR,ZPX},_illegal_,{CLI,IMP},{EOR,ABY},_illegal_,_illegal_,_illegal_,{EOR,ABS},{LSR,ABX},_illegal_, // 5
+    {RTS,IMP},{ADC,IZX},_illegal_,_illegal_,_illegal_,{ADC,ZPG},{ROR,ZPG},_illegal_,{PLA,IMP},{ADC,IMM},{ROR,ACC},_illegal_,{JMP,IND},{ADC,ABS},{ROR,ABS},_illegal_, // 6
+    {BVS,REL},{ADC,IZY},_illegal_,_illegal_,_illegal_,{ADC,ZPX},{ROR,ZPX},_illegal_,{SEI,IMP},{ADC,ABY},_illegal_,_illegal_,_illegal_,{ADC,ABS},{ROR,ABX},_illegal_, // 7
+    _illegal_,{STA,IZX},_illegal_,_illegal_,{STY,ZPG},{STA,ZPG},{STX,ZPG},_illegal_,{DEY,IMP},_illegal_,{TXA,IMP},_illegal_,{STY,ABS},{STA,ABS},{STX,ABS},_illegal_, // 8
+    {BCC,REL},{STA,IZY},_illegal_,_illegal_,{STY,ZPX},{STA,ZPX},{STX,ZPX},_illegal_,{TYA,IMP},{STA,ABY},{TXS,IMP},_illegal_,_illegal_,{STA,ABS},_illegal_,_illegal_, // 9
+    {LDY,IMM},{LDA,IZX},{LDX,IMM},_illegal_,{LDY,ZPG},{LDA,ZPG},{LDX,ZPG},_illegal_,{TAY,IMP},{LDA,IMM},{TAX,IMP},_illegal_,{LDY,ABS},{LDA,ABS},{LDX,ABS},_illegal_, // A
+    {BCS,REL},{LDA,IZY},_illegal_,_illegal_,{LDY,ZPX},{LDA,ZPX},{LDX,ZPX},_illegal_,{CLV,IMP},{LDA,ABY},{TSX,IMP},_illegal_,{LDY,ABX},{LDA,ABS},{LDX,ABX},_illegal_, // B
+    {CPY,IMM},{CMP,IZX},_illegal_,_illegal_,{CPY,ZPG},{CMP,ZPG},{DEC,ZPG},_illegal_,{INY,IMP},{CMP,IMM},{DEX,IMP},_illegal_,{CPY,ABS},{CMP,ABS},{DEC,ABS},_illegal_, // C
+    {BNE,REL},{CMP,IZY},_illegal_,_illegal_,_illegal_,{CMP,ZPX},{DEC,ZPX},_illegal_,{CLD,IMP},{CMP,ABY},_illegal_,_illegal_,_illegal_,{CMP,ABS},{DEC,ABX},_illegal_, // D
+    {CPX,IMM},{SBC,IZX},_illegal_,_illegal_,{CPX,ZPG},{SBC,ZPG},{INC,ZPG},_illegal_,{INX,IMP},{SBC,IMM},{NOP,IMP},_illegal_,{CPX,ABS},{SBC,ABS},{INC,ABS},_illegal_, // E
+    {BEQ,REL},{SBC,IZY},_illegal_,_illegal_,_illegal_,{SBC,ZPX},{INC,ZPX},_illegal_,{SED,IMP},{SBC,ABY},_illegal_,_illegal_,_illegal_,{SBC,ABS},{INC,ABX},_illegal_  // F
 };
 
 std::string IntToHexString(int number) {
@@ -179,10 +193,9 @@ std::string intToBinary(int num, int bitCount = 8) {
     return std::bitset<32>(num).to_string().substr(32 - bitCount, bitCount);
 }
 
-std::string toLowerCase(const std::string& str) {
+std::string toLower(const std::string& str) {
     std::string result = str;
-    std::transform(result.begin(), result.end(), result.begin(),
-                   [](unsigned char c) { return std::tolower(c); });
+    std::transform(result.begin(), result.end(), result.begin(),[](unsigned char c) { return std::tolower(c); });
     return result;
 }
 
@@ -229,6 +242,6 @@ std::string OpcodeToAsm(Opcode opcode, int num) {
             output += " $"+IntToHexString(num)+",Y";
             break;
     }
-
-    return toLowerCase(output);
+    return toLower(output);
 }
+
