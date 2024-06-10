@@ -1,5 +1,11 @@
 #include <iostream>
-#include <cstring>
+#include <string>
+#include <sstream>
+#include <iomanip>
+#include <bitset>
+#include <algorithm> // For std::transform
+#include <cctype>    // For std::tolower
+
 
 enum AddressingMode {
     ACC,    // Accumulator
@@ -164,55 +170,65 @@ Opcode opcodeTable[] =
 };
 
 std::string IntToHexString(int number) {
-    char hexString[20];
-    std::sprintf(hexString, "%X", number);
-    return hexString;
+    std::stringstream ss;
+    ss << std::setw(4) << std::setfill('0') << std::hex << std::uppercase << number;
+    return ss.str();
+}
+
+std::string intToBinary(int num, int bitCount = 8) {
+    return std::bitset<32>(num).to_string().substr(32 - bitCount, bitCount);
+}
+
+std::string toLowerCase(const std::string& str) {
+    std::string result = str;
+    std::transform(result.begin(), result.end(), result.begin(),
+                   [](unsigned char c) { return std::tolower(c); });
+    return result;
 }
 
 std::string OpcodeToAsm(Opcode opcode, int num) {
     std::string output = "";
     output += InstructionStrings[opcode.name];
     switch(opcode.addressing) {
-        case ACC:
+        case ACC: // opc a
             output += " A";
             break;
-        case ABS:
-            output += " $" + IntToHexString(num);
-            break;
-        case ABX:
-            output += " $"+IntToHexString(num)+", X";
-            break;
-        case ABY:
-            output += " $"+IntToHexString(num)+", Y";
-            break;
-        case IMM:
-            output += " #$BB";
-            break;
-        case IMP:
-            output += "";
-            break;
-        case IND:
-            output += "($"+IntToHexString(num)+")";
-            break;
-        case IZX:
-            output += " ($"+IntToHexString(num)+", X)";
-            break;
-        case IZY:
-            output += " ($"+IntToHexString(num)+"), Y";
-            break;
-        case REL:
-            output += " $BB";
-            break;
-        case ZPG:
+        case ABS: // opc $HHLL
             output += " $"+IntToHexString(num);
             break;
-        case ZPX:
-            output += " $"+IntToHexString(num)+", X";
+        case ABX: // opc $HHLL,x
+            output += " $"+IntToHexString(num)+",X";
             break;
-        case ZPY:
-            output += " $"+IntToHexString(num)+", Y";
+        case ABY: // opc $HHLL,y
+            output += " $"+IntToHexString(num)+",Y";
+            break;
+        case IMM: // opc #$BB
+            output += " #$"+IntToHexString(num);
+            break;
+        case IMP: // opc 
+            break;
+        case IND: // opc ($LLHH)
+            output += "($"+IntToHexString(num)+")";
+            break;
+        case IZX: // opc ($LL,x)
+            output += " ($"+IntToHexString(num)+",X)";
+            break;
+        case IZY: // opc ($LL),y
+            output += " ($"+IntToHexString(num)+"),Y";
+            break;
+        case REL: // opc $BB
+            output += " $"+intToBinary(num);
+            break;
+        case ZPG: // opc $LL
+            output += " $"+IntToHexString(num);
+            break;
+        case ZPX: // opc $LL,x
+            output += " $"+IntToHexString(num)+",X";
+            break;
+        case ZPY: // opc $LL,y
+            output += " $"+IntToHexString(num)+",Y";
             break;
     }
 
-    return output;
+    return toLowerCase(output);
 }
