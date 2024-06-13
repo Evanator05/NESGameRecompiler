@@ -3,8 +3,8 @@
 #include <sstream>
 #include <iomanip>
 #include <bitset>
-#include <algorithm> // For std::transform
-#include <cctype>    // For std::tolower
+#include <algorithm>
+#include <cctype>
 
 enum AddressingMode {
     ACC,    // Accumulator
@@ -189,7 +189,7 @@ std::string IntToHexString(int number) {
     return ss.str();
 }
 
-std::string intToBinary(int num, int bitCount = 8) {
+std::string IntToBinaryString(int num, int bitCount = 8) {
     return std::bitset<32>(num).to_string().substr(32 - bitCount, bitCount);
 }
 
@@ -220,7 +220,7 @@ std::string OpcodeToAsm(Opcode opcode, int num) {
             break;
         case IMP: // opc 
             break;
-        case IND: // opc ($LLHH)
+        case IND: // opc ($HHLL)
             output += "($"+IntToHexString(num)+")";
             break;
         case IZX: // opc ($LL,x)
@@ -230,7 +230,7 @@ std::string OpcodeToAsm(Opcode opcode, int num) {
             output += " ($"+IntToHexString(num)+"),Y";
             break;
         case REL: // opc $BB
-            output += " $"+intToBinary(num);
+            output += " $"+IntToBinaryString(num);
             break;
         case ZPG: // opc $LL
             output += " $"+IntToHexString(num);
